@@ -39,8 +39,10 @@ export function createPeoniaSketch(
     
     let rotX = 0, rotY = 0, rotZ = 0;
     let autoRotX = 0, autoRotY = 0, autoRotZ = 0;
-    let mouseRotX = 0, mouseRotY = 0;
-    let targetMouseRotX = 0, targetMouseRotY = 0;
+    let dragRotX = 0, dragRotY = 0;
+    let dragVelX = 0, dragVelY = 0;
+    let isDragging = false;
+    let lastDragX = 0, lastDragY = 0;
     let rotEaseIn = 0;
     
     let loadingPhase = true;
@@ -92,10 +94,36 @@ export function createPeoniaSketch(
       ctx = p.drawingContext as CanvasRenderingContext2D;
 
       startElement(getParams().flowerIndex);
+      document.body.style.cursor = 'grab';
     };
 
     p.windowResized = function() {
       p.resizeCanvas(p.windowWidth, p.windowHeight);
+    };
+
+    p.mousePressed = function(evt?: MouseEvent) {
+      // Only start drag when clicking on the p5 canvas itself (not UI overlays)
+      const target = evt?.target as HTMLElement | undefined;
+      if (target && target.tagName !== 'CANVAS') return;
+      isDragging = true;
+      lastDragX = p.mouseX;
+      lastDragY = p.mouseY;
+      dragVelX = 0;
+      dragVelY = 0;
+      document.body.style.cursor = 'grabbing';
+    };
+
+    p.mouseReleased = function() {
+      if (!isDragging) return;
+      isDragging = false;
+      document.body.style.cursor = 'grab';
+    };
+
+    (p as any).resetRotation = () => {
+      dragRotX = 0;
+      dragRotY = 0;
+      dragVelX = 0;
+      dragVelY = 0;
     };
 
     function startElement(idx: number) {
@@ -256,23 +284,31 @@ export function createPeoniaSketch(
         }
       }
 
-      // Allow mouse movement even when paused
-      targetMouseRotX = (p.mouseY - p.height / 2) / p.height * 1.2;
-      targetMouseRotY = (p.mouseX - p.width  / 2) / p.width  * 1.8;
-      mouseRotX += (targetMouseRotX - mouseRotX) * 0.04;
-      mouseRotY += (targetMouseRotY - mouseRotY) * 0.04;
+      // Click-and-drag rotation with momentum
+      if (isDragging) {
+        const dx = p.mouseX - lastDragX;
+        const dy = p.mouseY - lastDragY;
+        dragVelY = dx / p.width  * 3.0;
+        dragVelX = dy / p.height * 2.0;
+        dragRotY += dragVelY;
+        dragRotX += dragVelX;
+        lastDragX = p.mouseX;
+        lastDragY = p.mouseY;
+      } else {
+        // Apply momentum then decay it
+        dragRotY += dragVelY;
+        dragRotX += dragVelX;
+        dragVelX *= 0.94;
+        dragVelY *= 0.94;
+      }
 
-      rotX = autoRotX + mouseRotX * params.mouseInfluence;
-      rotY = autoRotY + mouseRotY * params.mouseInfluence;
+      rotX = autoRotX + dragRotX * params.mouseInfluence;
+      rotY = autoRotY + dragRotY * params.mouseInfluence;
       rotZ = autoRotZ;
 
-      if (phase === 'interactive' && !params.paused) {
-        mInfX += ((p.mouseX - p.width  / 2) * 0.08 * params.mouseInfluence - mInfX) * 0.04;
-        mInfY += ((p.mouseY - p.height / 2) * 0.08 * params.mouseInfluence - mInfY) * 0.04;
-      } else {
-        mInfX *= 0.95;
-        mInfY *= 0.95;
-      }
+      // Decay any leftover translation from previous versions
+      mInfX *= 0.9;
+      mInfY *= 0.9;
 
       drawFlowerToBuffer(f, bloom, wilt);
       renderToScreen();
