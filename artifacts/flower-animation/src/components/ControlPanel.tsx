@@ -180,6 +180,7 @@ export function ControlPanel({ params, setParams, onGlitch, onRestart, onForceWi
                 </SelectTrigger>
                 <SelectContent className="bg-zinc-950 border-white/10 z-50">
                   <SelectItem value="auto">Auto Cycle</SelectItem>
+                  <SelectItem value="raw">Clean (No FX)</SelectItem>
                   <SelectItem value="ascii">ASCII</SelectItem>
                   <SelectItem value="dots">Dots</SelectItem>
                   <SelectItem value="pixels">Pixels</SelectItem>

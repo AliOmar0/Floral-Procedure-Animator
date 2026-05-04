@@ -578,7 +578,13 @@ export function createPeoniaSketch(
       const renderW = BUF_W * scaleF, renderH = BUF_H * scaleF;
       const ox = (p.width  - renderW) / 2 + mInfX;
       const oy = (p.height - renderH) / 2 + mInfY;
-      
+
+      if (params.forcedRenderMode === 'raw') {
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(buf.canvas as HTMLCanvasElement, ox, oy, renderW, renderH);
+        return;
+      }
+
       let curM = renderMode;
       let prevM = prevMode;
       

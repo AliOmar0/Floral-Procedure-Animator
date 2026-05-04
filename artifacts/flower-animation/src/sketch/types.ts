@@ -17,7 +17,7 @@ export interface SketchParams {
   wiltSpeed: number;
   interactiveDuration: number;
   modeCycleInterval: number;
-  forcedRenderMode: 'auto' | 'ascii' | 'dots' | 'pixels';
+  forcedRenderMode: 'auto' | 'ascii' | 'dots' | 'pixels' | 'raw';
   densityMin: number;
   densityMax: number;
   autoRotate: boolean;
