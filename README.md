@@ -47,13 +47,6 @@ pnpm --filter @workspace/flower-animation run dev
 
 The dev server reads `PORT` and `BASE_PATH` from the environment (provided by the workflow runner).
 
-## Deploying to GitHub Pages
-
-1. Push this repo to GitHub.
-2. In the repo settings, go to **Pages → Build and deployment → Source** and select **GitHub Actions**.
-3. Push to `main` (or trigger the workflow manually). The `Deploy Flower Animation to GitHub Pages` workflow will build the app with `BASE_PATH=/<repo-name>/` and publish it.
-4. The site will be available at `https://<username>.github.io/<repo-name>/`.
-
 ## License
 
 MIT
