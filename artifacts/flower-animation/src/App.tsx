@@ -1,150 +1,210 @@
-import React, { useState, useEffect } from "react";
-import { Switch, Route, Router as WouterRouter } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { RotateCcw } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Sketch, SketchRef } from "./components/Sketch";
+import { ControlPanel } from "./components/ControlPanel";
+import { SketchParams } from "./sketch/types";
+import { FLOWER_PRESETS } from "./sketch/flowers";
 import { motion, AnimatePresence } from "framer-motion";
-import * as Flowers from "@/flowers";
-import NotFound from "@/pages/not-found";
+import { Eye } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-const queryClient = new QueryClient();
-
-const FLOWER_DATA = [
-  { id: "peony", name: "Peony", Component: Flowers.Peony, color: "#fca5a5" },
-  { id: "rose", name: "Rose", Component: Flowers.Rose, color: "#ef4444" },
-  { id: "cherry_blossom", name: "Cherry Blossom", Component: Flowers.CherryBlossom, color: "#fbcfe8" },
-  { id: "lotus", name: "Lotus", Component: Flowers.Lotus, color: "#d8b4fe" },
-  { id: "sunflower", name: "Sunflower", Component: Flowers.Sunflower, color: "#fcd34d" },
-  { id: "tulip", name: "Tulip", Component: Flowers.Tulip, color: "#c084fc" },
-];
-
-function Home() {
-  const [selectedId, setSelectedId] = useState(FLOWER_DATA[0].id);
-  const [animationKey, setAnimationKey] = useState(0);
-  const [progress, setProgress] = useState(0);
-
-  const selectedFlower = FLOWER_DATA.find((f) => f.id === selectedId) || FLOWER_DATA[0];
-
-  useEffect(() => {
-    // Reset and start animation
-    setProgress(0);
-    let start = performance.now();
-    const duration = 4000;
-
-    let frameId: number;
-    const animate = (time: number) => {
-      const elapsed = time - start;
-      const t = Math.min(elapsed / duration, 1);
-      // easeOutCubic
-      const easedT = 1 - Math.pow(1 - t, 3);
-      setProgress(easedT);
-
-      if (t < 1) {
-        frameId = requestAnimationFrame(animate);
-      }
-    };
-    frameId = requestAnimationFrame(animate);
-
-    return () => cancelAnimationFrame(frameId);
-  }, [selectedId, animationKey]);
-
-  return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0a0a0a] text-zinc-100 overflow-hidden relative selection:bg-zinc-800">
-      
-      {/* Background ambient glow based on flower color */}
-      <motion.div 
-        className="absolute inset-0 opacity-20 pointer-events-none"
-        animate={{ backgroundColor: selectedFlower.color }}
-        transition={{ duration: 2 }}
-        style={{ filter: "blur(100px)" }}
-      />
-      
-      {/* Noise Texture */}
-      <div className="absolute inset-0 pointer-events-none opacity-5" style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg viewBox=0 0 200 200 xmlns=http://www.w3.org/2000/svg%3E%3Cfilter id=noiseFilter%3E%3CfeTurbulence type=fractalNoise baseFrequency=0.65 numOctaves=3 stitchTiles=stitch/%3E%3C/filter%3E%3Crect width=100%25 height=100%25 filter=url(%23noiseFilter)/%3E%3C/svg%3E')" }}></div>
-
-      {/* Main Canvas */}
-      <div className="flex-1 w-full flex flex-col items-center justify-center relative max-w-4xl px-6 py-12">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`${selectedId}-${animationKey}`}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="w-full max-w-[400px] aspect-square relative"
-          >
-            <selectedFlower.Component progress={progress} color={selectedFlower.color} />
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Flower Name Title */}
-        <motion.h1 
-          className="font-serif text-4xl md:text-6xl tracking-wide mt-12 text-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: progress > 0.8 ? 1 : 0, y: progress > 0.8 ? 0 : 20 }}
-          transition={{ duration: 1.2, ease: "easeOut" }}
-          style={{ color: selectedFlower.color }}
-        >
-          {selectedFlower.name}
-        </motion.h1>
-      </div>
-
-      {/* Controls */}
-      <div className="w-full max-w-2xl px-6 pb-12 z-10">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 backdrop-blur-md bg-white/5 border border-white/10 p-4 rounded-2xl">
-          <div className="flex flex-wrap justify-center gap-2">
-            {FLOWER_DATA.map((flower) => (
-              <button
-                key={flower.id}
-                onClick={() => setSelectedId(flower.id)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                  selectedId === flower.id 
-                    ? "bg-white/20 text-white shadow-[0_0_15px_rgba(255,255,255,0.1)]" 
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
-                }`}
-                style={{ 
-                  color: selectedId === flower.id ? flower.color : undefined,
-                  borderColor: selectedId === flower.id ? flower.color : "transparent"
-                }}
-              >
-                {flower.name}
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={() => setAnimationKey(k => k + 1)}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 text-zinc-300 transition-colors border border-white/5 hover:border-white/20 text-sm"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>Replay</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Router() {
-  return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
+export const DEFAULT_PARAMS: SketchParams = {
+  flowerIndex: 0,
+  bloomSpeed: 0.006,
+  wiltSpeed: 0.04,
+  interactiveDuration: 25,
+  modeCycleInterval: 0.8,
+  forcedRenderMode: 'auto',
+  densityMin: 4,
+  densityMax: 20,
+  autoRotate: true,
+  rotationSpeed: 1.0,
+  mouseInfluence: 1.0,
+  glitchEnabled: true,
+  glitchFrequency: 1.0,
+  glitchIntensity: 1.0,
+  asciiCharSet: 'letters',
+  bgColor: [0, 0, 0],
+  paused: false,
+  hideUI: false,
+  customColors: null,
+};
 
 function App() {
+  const [params, setParams] = useState<SketchParams>(DEFAULT_PARAMS);
+  const [phase, setPhase] = useState<string>("loading");
+  const [loadingPct, setLoadingPct] = useState(0);
+  const [isReady, setIsReady] = useState(false);
+  const sketchRef = useRef<SketchRef>(null);
+
+  const flower = FLOWER_PRESETS[params.flowerIndex % FLOWER_PRESETS.length];
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement) return;
+      
+      switch (e.key.toLowerCase()) {
+        case ' ':
+          e.preventDefault();
+          setParams(p => ({ ...p, paused: !p.paused }));
+          break;
+        case 'h':
+          setParams(p => ({ ...p, hideUI: !p.hideUI }));
+          break;
+        case 'g':
+          sketchRef.current?.triggerGlitch();
+          break;
+        case 'r':
+          sketchRef.current?.restartBloom();
+          break;
+        case 's':
+          sketchRef.current?.captureFrame();
+          break;
+        case 'f':
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          } else {
+            document.exitFullscreen().catch(() => {});
+          }
+          break;
+        case 'arrowleft':
+          setParams(p => ({ ...p, flowerIndex: (p.flowerIndex - 1 + FLOWER_PRESETS.length) % FLOWER_PRESETS.length }));
+          break;
+        case 'arrowright':
+          setParams(p => ({ ...p, flowerIndex: (p.flowerIndex + 1) % FLOWER_PRESETS.length }));
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleRandomize = () => {
+    setParams(p => ({
+      ...p,
+      flowerIndex: Math.floor(Math.random() * FLOWER_PRESETS.length),
+      bloomSpeed: Math.random() * 0.04 + 0.002,
+      wiltSpeed: Math.random() * 0.15 + 0.01,
+      interactiveDuration: Math.floor(Math.random() * 40) + 10,
+      modeCycleInterval: Math.random() > 0.3 ? Math.random() * 3 + 0.5 : 0,
+      forcedRenderMode: ['auto', 'ascii', 'dots', 'pixels'][Math.floor(Math.random() * 4)] as any,
+      densityMin: Math.floor(Math.random() * 10) + 4,
+      densityMax: Math.floor(Math.random() * 15) + 10,
+      autoRotate: Math.random() > 0.2,
+      rotationSpeed: Math.random() * 2,
+      mouseInfluence: Math.random() * 2,
+      glitchEnabled: Math.random() > 0.3,
+      glitchFrequency: Math.random() * 2 + 0.1,
+      glitchIntensity: Math.random() * 2 + 0.1,
+      asciiCharSet: ['letters', 'binary', 'symbols', 'blocks'][Math.floor(Math.random() * 4)] as any,
+      customColors: null
+    }));
+  };
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <div className="fixed inset-0 w-full h-full bg-black overflow-hidden font-sans select-none">
+      <Sketch 
+        ref={sketchRef}
+        params={params} 
+        onPhaseChange={setPhase}
+        onProgress={setLoadingPct}
+        onReady={() => {
+          setIsReady(true);
+          setPhase('growing');
+        }}
+      />
+
+      {/* Loading Overlay */}
+      <AnimatePresence>
+        {!isReady && (
+          <motion.div 
+            className="absolute inset-0 z-50 bg-black flex flex-col items-center justify-center pointer-events-none"
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            <div className="font-mono text-white/70 tracking-[4px] text-sm mb-6">LOADING</div>
+            <div className="w-[180px] h-[3px] bg-zinc-900 rounded-sm overflow-hidden">
+              <motion.div 
+                className="h-full bg-gradient-to-r from-rose-400 to-pink-300"
+                initial={{ width: 0 }}
+                animate={{ width: `${loadingPct}%` }}
+                transition={{ type: "tween", ease: "linear", duration: 0.1 }}
+              />
+            </div>
+            <div className="mt-3 font-mono text-zinc-500 text-[11px]">{loadingPct}%</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* UI Overlay */}
+      <AnimatePresence>
+        {isReady && !params.hideUI && (
+          <motion.div 
+            className="absolute inset-0 pointer-events-none z-40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {/* Flower Name Display */}
+            <div className="absolute bottom-10 left-10 text-white/90 drop-shadow-lg">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={params.flowerIndex}
+                  initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+                  transition={{ duration: 0.8 }}
+                >
+                  <h1 className="font-serif text-5xl md:text-7xl italic tracking-wide text-transparent bg-clip-text bg-gradient-to-br from-white to-white/70 pb-2">
+                    {flower.name}
+                  </h1>
+                </motion.div>
+              </AnimatePresence>
+              <div className="flex items-center gap-3 mt-2 opacity-60">
+                <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                <span className="font-mono text-xs tracking-[0.3em] uppercase">{phase}</span>
+              </div>
+            </div>
+
+            {/* Control Panel Container */}
+            <div className="absolute top-6 right-6 bottom-6 pointer-events-auto flex items-start justify-end">
+              <ControlPanel 
+                params={params} 
+                setParams={setParams} 
+                onGlitch={() => sketchRef.current?.triggerGlitch()}
+                onRestart={() => sketchRef.current?.restartBloom()}
+                onForceWilt={() => sketchRef.current?.forceWilt()}
+                onSave={() => sketchRef.current?.captureFrame()}
+                onRandomize={handleRandomize}
+                onReset={() => setParams(DEFAULT_PARAMS)}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Show UI toggle when hidden */}
+      <AnimatePresence>
+        {isReady && params.hideUI && (
+          <motion.div 
+            className="absolute top-6 right-6 z-50 pointer-events-auto"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+          >
+            <Button 
+              variant="outline" 
+              size="icon" 
+              data-testid="button-show-ui"
+              className="bg-black/20 backdrop-blur-md border-white/20 text-white/70 hover:text-white hover:bg-black/40 rounded-full w-10 h-10"
+              onClick={() => setParams(p => ({ ...p, hideUI: false }))}
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
