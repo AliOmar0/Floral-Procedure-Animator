@@ -452,52 +452,89 @@ export function createPeoniaSketch(
     }
 
     function drawBouquetWrap(f: FlowerPreset, x: number, y: number, a: number) {
-      const wrapH = 158 * a;
-      const topW  = 150;
-      const botW  = 78;
+      // A hand-tied wrapped bunch: kraft paper gathered at the tie, flaring
+      // OUTWARD and UP around the stems, with a short tail below, tied off with
+      // rustic twine. Reads as a wrapped pack rather than a vase/cone.
+      const flareH = 150 * a;   // paper rising up around the bunch
+      const tailH  = 48 * a;    // short paper tail beneath the tie
+      const topW   = 210 * a;   // wide gathered opening at the top
+      const tieW   = 26;        // pinched waist at the tie
+      const botW   = 72 * a;    // slight flare at the bottom tail
       buf.push();
-      // kraft paper cone
-      buf.fill(198, 172, 138, 235);
+      buf.noStroke();
+
+      // main kraft paper body (hourglass: wide top, pinched tie, small tail)
+      buf.fill(190, 166, 132, 240);
       buf.beginShape();
-      buf.vertex(x - topW / 2, y);
-      buf.vertex(x + topW / 2, y);
-      buf.vertex(x + botW / 2, y + wrapH);
-      buf.vertex(x - botW / 2, y + wrapH);
+      buf.vertex(x - topW / 2, y - flareH);
+      buf.vertex(x + topW / 2, y - flareH);
+      buf.vertex(x + tieW / 2, y + 2);
+      buf.vertex(x + botW / 2, y + tailH);
+      buf.vertex(x - botW / 2, y + tailH);
+      buf.vertex(x - tieW / 2, y + 2);
       buf.endShape(p.CLOSE);
-      // left fold highlight
-      buf.fill(224, 202, 172, 130);
+
+      // left highlighted fold panel
+      buf.fill(218, 196, 164, 150);
       buf.beginShape();
-      buf.vertex(x - topW / 2, y);
-      buf.vertex(x, y + 8);
-      buf.vertex(x - botW / 2, y + wrapH);
+      buf.vertex(x - topW / 2, y - flareH);
+      buf.vertex(x - topW * 0.14, y - flareH);
+      buf.vertex(x - tieW / 2, y);
       buf.endShape(p.CLOSE);
-      // right fold shadow
-      buf.fill(150, 126, 96, 120);
+
+      // right shadowed fold panel
+      buf.fill(150, 126, 96, 145);
       buf.beginShape();
-      buf.vertex(x + topW / 2, y);
-      buf.vertex(x, y + 8);
-      buf.vertex(x + botW / 2, y + wrapH);
+      buf.vertex(x + topW / 2, y - flareH);
+      buf.vertex(x + topW * 0.14, y - flareH);
+      buf.vertex(x + tieW / 2, y);
       buf.endShape(p.CLOSE);
-      // ribbon band (uses flower's mid color)
-      buf.fill(f.c2[0], f.c2[1], f.c2[2], 235);
-      buf.rect(x - topW * 0.4, y + wrapH * 0.16, topW * 0.8, 16, 4);
-      // ribbon knot
-      buf.ellipse(x, y + wrapH * 0.16 + 8, 14, 14);
+
+      // crease lines fanning from the tie up to the paper's top edge
+      buf.stroke(150, 126, 96, 110);
+      buf.strokeWeight(1.2);
+      for (let i = -2; i <= 2; i++) {
+        buf.line(x, y, x + (topW / 2) * (i / 2.4), y - flareH);
+      }
+
+      // twine tie: a couple of wound bands at the pinched waist
+      buf.stroke(122, 96, 62, 235);
+      buf.strokeWeight(3.5);
+      buf.line(x - tieW * 1.05, y - 2, x + tieW * 1.05, y + 2);
+      buf.strokeWeight(2.4);
+      buf.line(x - tieW * 1.0, y + 4, x + tieW * 1.0, y + 8);
+      // twine tails hanging from the knot
+      buf.strokeWeight(1.8);
+      buf.noFill();
+      buf.bezier(x + 4, y + 4, x + tieW * 0.7, y + 16, x + tieW * 0.4, y + 26, x + tieW * 1.1, y + 34);
+      buf.bezier(x + 4, y + 4, x + tieW * 0.9, y + 14, x + tieW * 1.3, y + 22, x + tieW * 0.8, y + 36);
+      buf.noStroke();
       buf.pop();
     }
 
     function drawStem(g: p5.Graphics, f: FlowerPreset, progress: number, wl: number, cx: number, cy: number) {
+      const focal   = 420;
       const stemLen = BUF_H * 0.42;
-      const stemX   = cx;
       const stemTop = cy;
       const stemBot = stemTop + stemLen;
       const visibleLen = stemLen * easeOutQuart(progress);
       const visibleTop = stemBot - visibleLen;
+
+      // Project a point on the stem (given as an offset from the flower-head
+      // pivot) through the same rot3D used for the petals, so the stem rotates
+      // rigidly with the whole flower instead of staying anchored.
+      const project = (offX: number, offY: number) => {
+        const [rx, ry, rz] = rot3D(offX, offY, 0);
+        const ps = focal / (focal + rz);
+        return { sx: cx + rx * ps, sy: cy + ry * ps, ps };
+      };
+
       for (let y = visibleTop; y < stemBot; y += 3) {
         const tt       = (y - stemTop) / stemLen;
         const sw       = p.lerp(15, 8, tt);
         const wiltBend = wl * 45 * (1 - tt) * p.sin((1 - tt) * p.PI);
         const curveX   = p.sin(tt * p.PI * 0.3) * 22 + p.sin(tt * p.PI * 0.8) * 8 + wiltBend;
+        const { sx, sy, ps } = project(curveX, y - cy);
         let r  = p.lerp(f.stemC[0], f.stemC[0] * 0.5, tt);
         let gc = p.lerp(f.stemC[1], f.stemC[1] * 0.5, tt);
         let b  = p.lerp(f.stemC[2], f.stemC[2] * 0.5, tt);
@@ -507,27 +544,24 @@ export function createPeoniaSketch(
           b  = p.lerp(b,  b  * 0.25 + 8, wl * 0.5);
         }
         g.fill(r, gc, b);
-        g.ellipse(stemX + curveX, y, sw, 5);
+        g.ellipse(sx, sy, sw * ps, 5 * ps);
         g.fill(r * 1.4, gc * 1.4, b * 1.3, 50);
-        g.ellipse(stemX + curveX - 2, y, sw * 0.2, 3);
+        g.ellipse(sx - 2 * ps, sy, sw * 0.2 * ps, 3 * ps);
       }
+      const placeLeaf = (frac: number, side: number, size: number) => {
+        const ly = stemLen * frac;
+        const lx = p.sin(frac * p.PI * 0.3) * 22;
+        const { sx, sy, ps } = project(lx, ly);
+        drawLeaf(g, sx, sy, side, size * ps, f.stemC);
+      };
       if (progress > 0.3) {
-        const leafP = p.constrain((progress - 0.3) / 0.4, 0, 1);
-        const ly = stemTop + stemLen * 0.22;
-        const lx = stemX + p.sin(0.22 * p.PI * 0.3) * 22;
-        drawLeaf(g, lx, ly, -1, 48 * leafP, f.stemC);
+        placeLeaf(0.22, -1, 48 * p.constrain((progress - 0.3) / 0.4, 0, 1));
       }
       if (progress > 0.5) {
-        const leafP = p.constrain((progress - 0.5) / 0.4, 0, 1);
-        const ly = stemTop + stemLen * 0.50;
-        const lx = stemX + p.sin(0.50 * p.PI * 0.3) * 22;
-        drawLeaf(g, lx, ly, 1, 42 * leafP, f.stemC);
+        placeLeaf(0.50, 1, 42 * p.constrain((progress - 0.5) / 0.4, 0, 1));
       }
       if (progress > 0.7) {
-        const leafP = p.constrain((progress - 0.7) / 0.3, 0, 1);
-        const ly = stemTop + stemLen * 0.35;
-        const lx = stemX + p.sin(0.35 * p.PI * 0.3) * 22;
-        drawLeaf(g, lx, ly, -1, 35 * leafP, f.stemC);
+        placeLeaf(0.35, -1, 35 * p.constrain((progress - 0.7) / 0.3, 0, 1));
       }
     }
 
