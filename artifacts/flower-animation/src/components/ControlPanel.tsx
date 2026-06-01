@@ -115,6 +115,17 @@ export function ControlPanel({ params, setParams, onGlitch, onRestart, onForceWi
               </Button>
             </div>
 
+            <div className="space-y-2 pt-4 border-t border-white/10">
+              <Label className="text-xs text-zinc-400 uppercase tracking-wider">Arrangement</Label>
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <Label>Bouquet</Label>
+                  <span className="text-[10px] text-zinc-500 normal-case">Render as a wrapped bunch</span>
+                </div>
+                <Switch data-testid="switch-bouquet" checked={params.bouquet} onCheckedChange={v => updateParam('bouquet', v)} />
+              </div>
+            </div>
+
             <div className="space-y-4 pt-4 border-t border-white/10">
               <Label className="text-xs text-zinc-400 uppercase tracking-wider">Lifecycle</Label>
               

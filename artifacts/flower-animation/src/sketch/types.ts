@@ -23,6 +23,7 @@ export interface SketchParams {
   autoRotate: boolean;
   rotationSpeed: number;
   mouseInfluence: number;
+  bouquet: boolean;
   glitchEnabled: boolean;
   glitchFrequency: number;
   glitchIntensity: number;

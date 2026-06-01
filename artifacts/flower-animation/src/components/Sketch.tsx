@@ -42,6 +42,7 @@ export const Sketch = forwardRef<SketchRef, SketchProps>(({ params, onPhaseChang
 
     return () => {
       if (p5Instance.current) {
+        (p5Instance.current as any).cleanup?.();
         p5Instance.current.remove();
         p5Instance.current = null;
       }

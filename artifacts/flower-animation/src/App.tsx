@@ -19,6 +19,7 @@ export const DEFAULT_PARAMS: SketchParams = {
   autoRotate: true,
   rotationSpeed: 1.0,
   mouseInfluence: 1.0,
+  bouquet: false,
   glitchEnabled: true,
   glitchFrequency: 1.0,
   glitchIntensity: 1.0,

@@ -1,5 +1,5 @@
 import p5 from "p5";
-import { SketchParams } from "./types";
+import { SketchParams, FlowerPreset } from "./types";
 import { FLOWER_PRESETS } from "./flowers";
 
 export function createPeoniaSketch(
@@ -88,7 +88,7 @@ export function createPeoniaSketch(
       buf = p.createGraphics(BUF_W, BUF_H);
       buf.pixelDensity(1);
       buf.noSmooth();
-      const canvasEl = buf.canvas as HTMLCanvasElement;
+      const canvasEl = (buf as any).canvas as HTMLCanvasElement;
       canvasEl.getContext('2d', { willReadFrequently: true });
 
       ctx = p.drawingContext as CanvasRenderingContext2D;
@@ -113,10 +113,22 @@ export function createPeoniaSketch(
       document.body.style.cursor = 'grabbing';
     };
 
-    p.mouseReleased = function() {
+    // End any drag reliably, even if the pointer is released outside the canvas
+    // or the window loses focus mid-drag.
+    const endDrag = () => {
       if (!isDragging) return;
       isDragging = false;
       document.body.style.cursor = 'grab';
+    };
+    p.mouseReleased = endDrag;
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('blur', endDrag);
+
+    // Restore the default cursor and detach listeners when the sketch is removed.
+    (p as any).cleanup = () => {
+      window.removeEventListener('pointerup', endDrag);
+      window.removeEventListener('blur', endDrag);
+      document.body.style.cursor = '';
     };
 
     (p as any).resetRotation = () => {
@@ -302,9 +314,15 @@ export function createPeoniaSketch(
         dragVelY *= 0.94;
       }
 
-      rotX = autoRotX + dragRotX * params.mouseInfluence;
-      rotY = autoRotY + dragRotY * params.mouseInfluence;
-      rotZ = autoRotZ;
+      // Clamp vertical tilt so the flower never flips fully upside down
+      dragRotX = p.constrain(dragRotX, -1.25, 1.25);
+      const targetRotX = autoRotX + dragRotX * params.mouseInfluence;
+      const targetRotY = autoRotY + dragRotY * params.mouseInfluence;
+      // Smoothly ease the actual rotation toward the target for fluid motion
+      const ease = isDragging ? 0.32 : 0.16;
+      rotX += (targetRotX - rotX) * ease;
+      rotY += (targetRotY - rotY) * ease;
+      rotZ += (autoRotZ - rotZ) * 0.16;
 
       // Decay any leftover translation from previous versions
       mInfX *= 0.9;
@@ -351,6 +369,11 @@ export function createPeoniaSketch(
     function drawFlowerToBuffer(f: FlowerPreset, bl: number, wl: number) {
       buf.background(0);
       buf.noStroke();
+      if (getParams().bouquet) {
+        drawBouquet(f, bl, wl);
+        buf.loadPixels();
+        return;
+      }
       const stemProgress = p.constrain(bl * 3, 0, 1);
       const flowerBloom  = p.constrain((bl - 0.15) / 0.85, 0, 1);
       const wiltDroop    = wl * 55;
@@ -361,9 +384,111 @@ export function createPeoniaSketch(
       buf.loadPixels();
     }
 
+    // Layout of flowers within a bouquet: offsets from the cluster center.
+    const BOUQUET_LAYOUT = [
+      { dx: 0,    dy: -46, s: 0.58, delay: 0.00 },
+      { dx: -120, dy: -2,  s: 0.50, delay: 0.10 },
+      { dx: 122,  dy: 2,   s: 0.50, delay: 0.08 },
+      { dx: -64,  dy: 58,  s: 0.44, delay: 0.18 },
+      { dx: 66,   dy: 54,  s: 0.46, delay: 0.14 },
+    ];
+
+    function drawBouquet(f: FlowerPreset, bl: number, wl: number) {
+      const flowerBloom = p.constrain((bl - 0.15) / 0.85, 0, 1);
+      const wiltDroop   = wl * 36;
+      const tieX        = BUF_W / 2;
+      const tieY        = BUF_H * 0.80;
+      const clusterCX   = BUF_W / 2;
+      const clusterCY   = BUF_H * 0.30 + wiltDroop;
+      const stemGrow    = p.constrain(bl * 2.2, 0, 1);
+
+      // 1) Converging stems behind the flowers
+      for (const a of BOUQUET_LAYOUT) {
+        drawBouquetStem(f, clusterCX + a.dx, clusterCY + a.dy + 24, tieX, tieY, stemGrow, wl);
+      }
+
+      // 2) Paper wrap + ribbon over the tie point
+      if (stemGrow > 0.45) {
+        drawBouquetWrap(f, tieX, tieY, p.constrain((stemGrow - 0.45) / 0.55, 0, 1));
+      }
+
+      // 3) Flowers, back (top) to front (bottom)
+      const ordered = [...BOUQUET_LAYOUT].sort((a, b) => a.dy - b.dy);
+      for (const a of ordered) {
+        const fb = p.constrain((flowerBloom - a.delay) / (1 - a.delay), 0, 1);
+        if (fb < 0.01) continue;
+        buf.push();
+        buf.translate(clusterCX + a.dx, clusterCY + a.dy);
+        buf.scale(a.s);
+        buf.translate(-BUF_W / 2, -BUF_H * 0.38);
+        drawPeony3D(buf, f, fb, wl, BUF_W / 2, BUF_H * 0.38);
+        buf.pop();
+      }
+    }
+
+    function drawBouquetStem(
+      f: FlowerPreset, x1: number, y1: number, x2: number, y2: number, grow: number, wl: number
+    ) {
+      let r = f.stemC[0], gc = f.stemC[1], b = f.stemC[2];
+      if (wl > 0) {
+        r  = p.lerp(r,  r  * 0.4 + 30, wl * 0.5);
+        gc = p.lerp(gc, gc * 0.3 + 15, wl * 0.5);
+        b  = p.lerp(b,  b  * 0.25 + 8, wl * 0.5);
+      }
+      const segs = 26;
+      const bend = (x1 - x2) * 0.25;
+      for (let i = 0; i <= segs; i++) {
+        const tt = i / segs;
+        if (tt > grow) break;
+        // grow upward from the tie point toward the flower head
+        const x = p.lerp(x2, x1, tt) + p.sin(tt * p.PI) * bend;
+        const y = p.lerp(y2, y1, tt);
+        const sw = p.lerp(8, 4, tt);
+        buf.fill(r, gc, b);
+        buf.ellipse(x, y, sw, sw);
+        buf.fill(r * 1.4, gc * 1.4, b * 1.3, 60);
+        buf.ellipse(x - 1.5, y, sw * 0.3, sw * 0.3);
+      }
+    }
+
+    function drawBouquetWrap(f: FlowerPreset, x: number, y: number, a: number) {
+      const wrapH = 158 * a;
+      const topW  = 150;
+      const botW  = 78;
+      buf.push();
+      // kraft paper cone
+      buf.fill(198, 172, 138, 235);
+      buf.beginShape();
+      buf.vertex(x - topW / 2, y);
+      buf.vertex(x + topW / 2, y);
+      buf.vertex(x + botW / 2, y + wrapH);
+      buf.vertex(x - botW / 2, y + wrapH);
+      buf.endShape(p.CLOSE);
+      // left fold highlight
+      buf.fill(224, 202, 172, 130);
+      buf.beginShape();
+      buf.vertex(x - topW / 2, y);
+      buf.vertex(x, y + 8);
+      buf.vertex(x - botW / 2, y + wrapH);
+      buf.endShape(p.CLOSE);
+      // right fold shadow
+      buf.fill(150, 126, 96, 120);
+      buf.beginShape();
+      buf.vertex(x + topW / 2, y);
+      buf.vertex(x, y + 8);
+      buf.vertex(x + botW / 2, y + wrapH);
+      buf.endShape(p.CLOSE);
+      // ribbon band (uses flower's mid color)
+      buf.fill(f.c2[0], f.c2[1], f.c2[2], 235);
+      buf.rect(x - topW * 0.4, y + wrapH * 0.16, topW * 0.8, 16, 4);
+      // ribbon knot
+      buf.ellipse(x, y + wrapH * 0.16 + 8, 14, 14);
+      buf.pop();
+    }
+
     function drawStem(g: p5.Graphics, f: FlowerPreset, progress: number, wl: number, cx: number, cy: number) {
       const stemLen = BUF_H * 0.42;
-      const stemX   = BUF_W / 2;
+      const stemX   = cx;
       const stemTop = cy;
       const stemBot = stemTop + stemLen;
       const visibleLen = stemLen * easeOutQuart(progress);
@@ -617,7 +742,7 @@ export function createPeoniaSketch(
 
       if (params.forcedRenderMode === 'raw') {
         ctx.imageSmoothingEnabled = true;
-        ctx.drawImage(buf.canvas as HTMLCanvasElement, ox, oy, renderW, renderH);
+        ctx.drawImage((buf as any).canvas as HTMLCanvasElement, ox, oy, renderW, renderH);
         return;
       }
 
