@@ -157,6 +157,7 @@ export function createPeoniaSketch(
 
     function triggerGlitchManual() {
       const params = getParams();
+      if (!params.glitchEnabled) { glitchActive = false; glitchSlices = []; return; }
       glitchActive = true;
       glitchIntensityVal = p.random(0.4, 1.0) * params.glitchIntensity;
       glitchSlices = [];
@@ -296,6 +297,7 @@ export function createPeoniaSketch(
           }
         } else {
           glitchActive = false;
+          glitchSlices = [];
         }
       }
 
