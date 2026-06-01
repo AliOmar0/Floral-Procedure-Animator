@@ -216,9 +216,12 @@ export function createPeoniaSketch(
         const re = easeInOutCubic(rotEaseIn);
 
         if (params.autoRotate) {
-          autoRotY += dt * 0.3  * re * params.rotationSpeed;
-          autoRotX += dt * 0.12 * p.sin(t * 0.15) * re * params.rotationSpeed;
-          autoRotZ += dt * 0.08 * p.sin(t * 0.09 + 1.5) * re * params.rotationSpeed;
+          // Turntable spin: the flower turns around its own vertical axis like a
+          // real object, with only a small bounded nod. No accumulated roll/drift
+          // (which read as the camera tumbling rather than the flower rotating).
+          autoRotY += dt * 0.3 * re * params.rotationSpeed;
+          autoRotX = p.sin(t * 0.25) * 0.10 * re;
+          autoRotZ = 0;
         }
 
         if (phase === 'growing') {
@@ -367,7 +370,9 @@ export function createPeoniaSketch(
     }
 
     function drawFlowerToBuffer(f: FlowerPreset, bl: number, wl: number) {
-      buf.background(0);
+      // Transparent buffer so the screen background color shows through the
+      // flower area instead of being painted over with black.
+      buf.clear();
       buf.noStroke();
       if (getParams().bouquet) {
         drawBouquet(f, bl, wl);
@@ -824,7 +829,7 @@ export function createPeoniaSketch(
         for (let x = 0; x < BUF_W; x += stepX) {
           const idx = (y * BUF_W + x) * 4;
           const r = px[idx], gr = px[idx+1], b = px[idx+2], a = px[idx+3];
-          if (a < 10 && (r+gr+b) < 10) continue;
+          if (a < 10) continue;
           const rx = ox + x * scaleF;
           const ry = oy + y * scaleF;
 

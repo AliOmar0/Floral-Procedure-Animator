@@ -162,24 +162,6 @@ export function ControlPanel({ params, setParams, onGlitch, onRestart, onForceWi
               <div className="flex justify-between"><Label>Mouse Influence</Label><span>{params.mouseInfluence.toFixed(1)}</span></div>
               <Slider data-testid="slider-mouse-influence" value={[params.mouseInfluence]} min={0} max={2} step={0.1} onValueChange={v => updateParam('mouseInfluence', v[0])} />
             </div>
-
-            <div className="space-y-4 pt-4 border-t border-white/10">
-              <div className="flex items-center justify-between">
-                <Label className="text-zinc-400 uppercase tracking-wider">Glitch FX</Label>
-                <Switch data-testid="switch-glitch" checked={params.glitchEnabled} onCheckedChange={v => updateParam('glitchEnabled', v)} />
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between"><Label>Frequency</Label><span>{params.glitchFrequency.toFixed(1)}</span></div>
-                <Slider data-testid="slider-glitch-frequency" value={[params.glitchFrequency]} min={0.1} max={3} step={0.1} onValueChange={v => updateParam('glitchFrequency', v[0])} disabled={!params.glitchEnabled} />
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between"><Label>Intensity</Label><span>{params.glitchIntensity.toFixed(1)}</span></div>
-                <Slider data-testid="slider-glitch-intensity" value={[params.glitchIntensity]} min={0.1} max={3} step={0.1} onValueChange={v => updateParam('glitchIntensity', v[0])} disabled={!params.glitchEnabled} />
-              </div>
-              <Button variant="outline" data-testid="button-trigger-glitch" className="w-full bg-white/5 border-white/10 h-8 mt-2" onClick={onGlitch} disabled={!params.glitchEnabled}>
-                <Zap className="w-3 h-3 mr-2" /> Trigger Now
-              </Button>
-            </div>
           </TabsContent>
 
           <TabsContent value="render" className="space-y-6 focus:outline-none">
@@ -227,6 +209,24 @@ export function ControlPanel({ params, setParams, onGlitch, onRestart, onForceWi
             <div className="space-y-2">
               <div className="flex justify-between"><Label>Cycle Speed (s)</Label><span>{params.modeCycleInterval === 0 ? 'Freeze' : params.modeCycleInterval.toFixed(1)}</span></div>
               <Slider data-testid="slider-cycle-speed" value={[params.modeCycleInterval]} min={0} max={5} step={0.2} onValueChange={v => updateParam('modeCycleInterval', v[0])} disabled={params.forcedRenderMode !== 'auto'} />
+            </div>
+
+            <div className="space-y-4 pt-4 border-t border-white/10">
+              <div className="flex items-center justify-between">
+                <Label className="text-zinc-400 uppercase tracking-wider">Glitch FX</Label>
+                <Switch data-testid="switch-glitch" checked={params.glitchEnabled} onCheckedChange={v => updateParam('glitchEnabled', v)} />
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between"><Label>Frequency</Label><span>{params.glitchFrequency.toFixed(1)}</span></div>
+                <Slider data-testid="slider-glitch-frequency" value={[params.glitchFrequency]} min={0.1} max={3} step={0.1} onValueChange={v => updateParam('glitchFrequency', v[0])} disabled={!params.glitchEnabled} />
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between"><Label>Intensity</Label><span>{params.glitchIntensity.toFixed(1)}</span></div>
+                <Slider data-testid="slider-glitch-intensity" value={[params.glitchIntensity]} min={0.1} max={3} step={0.1} onValueChange={v => updateParam('glitchIntensity', v[0])} disabled={!params.glitchEnabled} />
+              </div>
+              <Button variant="outline" data-testid="button-trigger-glitch" className="w-full bg-white/5 border-white/10 h-8 mt-2" onClick={onGlitch} disabled={!params.glitchEnabled}>
+                <Zap className="w-3 h-3 mr-2" /> Trigger Now
+              </Button>
             </div>
           </TabsContent>
 
