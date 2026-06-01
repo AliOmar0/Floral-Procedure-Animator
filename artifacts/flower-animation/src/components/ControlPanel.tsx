@@ -214,17 +214,20 @@ export function ControlPanel({ params, setParams, onGlitch, onRestart, onForceWi
             <div className="space-y-4 pt-4 border-t border-white/10">
               <div className="flex items-center justify-between">
                 <Label className="text-zinc-400 uppercase tracking-wider">Glitch FX</Label>
-                <Switch data-testid="switch-glitch" checked={params.glitchEnabled} onCheckedChange={v => updateParam('glitchEnabled', v)} />
+                <Switch data-testid="switch-glitch" checked={params.glitchEnabled} onCheckedChange={v => updateParam('glitchEnabled', v)} disabled={params.forcedRenderMode === 'raw'} />
               </div>
+              {params.forcedRenderMode === 'raw' && (
+                <p data-testid="text-glitch-clean-note" className="text-[10px] text-zinc-500 leading-relaxed">Glitch FX is off in Clean (No FX) mode.</p>
+              )}
               <div className="space-y-2">
                 <div className="flex justify-between"><Label>Frequency</Label><span>{params.glitchFrequency.toFixed(1)}</span></div>
-                <Slider data-testid="slider-glitch-frequency" value={[params.glitchFrequency]} min={0.1} max={3} step={0.1} onValueChange={v => updateParam('glitchFrequency', v[0])} disabled={!params.glitchEnabled} />
+                <Slider data-testid="slider-glitch-frequency" value={[params.glitchFrequency]} min={0.1} max={3} step={0.1} onValueChange={v => updateParam('glitchFrequency', v[0])} disabled={!params.glitchEnabled || params.forcedRenderMode === 'raw'} />
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between"><Label>Intensity</Label><span>{params.glitchIntensity.toFixed(1)}</span></div>
-                <Slider data-testid="slider-glitch-intensity" value={[params.glitchIntensity]} min={0.1} max={3} step={0.1} onValueChange={v => updateParam('glitchIntensity', v[0])} disabled={!params.glitchEnabled} />
+                <Slider data-testid="slider-glitch-intensity" value={[params.glitchIntensity]} min={0.1} max={3} step={0.1} onValueChange={v => updateParam('glitchIntensity', v[0])} disabled={!params.glitchEnabled || params.forcedRenderMode === 'raw'} />
               </div>
-              <Button variant="outline" data-testid="button-trigger-glitch" className="w-full bg-white/5 border-white/10 h-8 mt-2" onClick={onGlitch} disabled={!params.glitchEnabled}>
+              <Button variant="outline" data-testid="button-trigger-glitch" className="w-full bg-white/5 border-white/10 h-8 mt-2" onClick={onGlitch} disabled={!params.glitchEnabled || params.forcedRenderMode === 'raw'}>
                 <Zap className="w-3 h-3 mr-2" /> Trigger Now
               </Button>
             </div>

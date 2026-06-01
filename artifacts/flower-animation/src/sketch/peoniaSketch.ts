@@ -157,7 +157,7 @@ export function createPeoniaSketch(
 
     function triggerGlitchManual() {
       const params = getParams();
-      if (!params.glitchEnabled) { glitchActive = false; glitchSlices = []; return; }
+      if (!params.glitchEnabled || params.forcedRenderMode === 'raw') { glitchActive = false; glitchSlices = []; return; }
       glitchActive = true;
       glitchIntensityVal = p.random(0.4, 1.0) * params.glitchIntensity;
       glitchSlices = [];
@@ -209,7 +209,14 @@ export function createPeoniaSketch(
       }
 
       p.background(params.bgColor[0], params.bgColor[1], params.bgColor[2]);
-      
+
+      // Always clear any active glitch when it's disabled or in Clean (No FX)
+      // mode, even while paused, so stale slices can't leak across mode changes.
+      if (!params.glitchEnabled || params.forcedRenderMode === 'raw') {
+        glitchActive = false;
+        glitchSlices = [];
+      }
+
       if (!params.paused) {
         t += 0.016;
 
@@ -288,7 +295,7 @@ export function createPeoniaSketch(
         grid += (gridTarget - grid) * 0.08;
         modeT = p.min(1, modeT + dt * 4.0);
 
-        if (params.glitchEnabled) {
+        if (params.glitchEnabled && params.forcedRenderMode !== 'raw') {
           updateGlitch(dt);
           glitchTimer -= dt;
           if (glitchTimer <= 0 && !glitchActive) {
@@ -335,7 +342,7 @@ export function createPeoniaSketch(
 
       drawFlowerToBuffer(f, bloom, wilt);
       renderToScreen();
-      if (params.glitchEnabled) {
+      if (params.glitchEnabled && params.forcedRenderMode !== 'raw') {
         drawGlitchOverlay();
       }
     };
